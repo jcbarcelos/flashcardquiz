@@ -1,0 +1,18 @@
+display_name: Flash Card Quiz
+group: Application/Emulator
+vendor: Júlio Céasar
+packager: Júlio Céasar
+packagerEmail: rasec23rj@gmail.com
+license: GPLv3
+
+
+keywords:
+  - Application
+
+generic_name: Flash Card Quiz
+
+categories:
+  - Utility
+
+startup_notify: true
+

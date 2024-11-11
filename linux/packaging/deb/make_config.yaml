@@ -1,0 +1,33 @@
+display_name: Flash Card Quiz
+package_name: flashcardquiz
+version: 1.0.0.2
+maintainer:
+  name: Júlio Céasar
+  email: rasec23rj@gmail.com
+
+icon: assets/icon/logo.png
+priority: optional
+
+section: x11
+
+installed_size: 15700
+
+dependencies:
+
+
+essential: false
+
+
+postuninstall_scripts:
+  - echo "Sorry to see you go."
+
+keywords:
+  - Application
+
+generic_name: Flash Card Quiz
+
+categories:
+  - Development
+  - Utility
+
+startup_notify: true
