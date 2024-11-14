@@ -145,20 +145,21 @@ class DatabaseHelper {
 
   // Função para restaurar o banco de dados a partir do backup selecionado
   Future<String> restoreDatabase() async {
-    final dbPath = await getDatabasesPath();
-    final databasePath = join(dbPath, 'flashcards.db');
-
+    // final dbPath = await getDatabasesPath();
+    // final databasePath = join(dbPath, 'flashcards.db');
+    var documentsDirectory = await getApplicationDocumentsDirectory();
+    String dbPath = join(documentsDirectory.path, 'flashcards.db');
     // Seleciona o arquivo de backup para restaurar
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['db'],
-    );
+    FilePickerResult? result =
+        await FilePicker.platform.pickFiles(type: FileType.any);
 
     if (result != null) {
-      final backupFile = File(result.files.single.path!);
       try {
-        await backupFile.copy(databasePath);
-        _database = await _initDatabase(); // Re-inicializa o banco de dados
+        final backupFile = result.files.single.path!;
+        await File(backupFile).copy(dbPath);
+
+        _database = await _initDatabase();
+        // Re-inicializa o banco de dados
         return 'Banco de dados restaurado com sucesso';
       } catch (e) {
         throw Exception('Erro ao restaurar banco de dados: $e');
