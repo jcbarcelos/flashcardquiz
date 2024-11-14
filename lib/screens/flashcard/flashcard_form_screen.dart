@@ -96,7 +96,8 @@ class _FlashcardFormScreenState extends State<FlashcardFormScreen> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   TextFormField(
                     controller: _questionController,
@@ -108,6 +109,19 @@ class _FlashcardFormScreenState extends State<FlashcardFormScreen> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Responstas',
+                      style: TextStyle(
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 20),
                   ..._buildOptionFields(),
                   const SizedBox(height: 20),
                   ElevatedButton(
@@ -128,30 +142,33 @@ class _FlashcardFormScreenState extends State<FlashcardFormScreen> {
 
     for (int i = 0; i < _optionsControllers.length; i++) {
       optionFields.add(
-        Row(
+        Wrap(
+          alignment: WrapAlignment.start,
+          runAlignment: WrapAlignment.start,
           children: [
-            Expanded(
-              child: TextField(
-                controller: _optionsControllers[i],
-                decoration: InputDecoration(
-                  labelText: 'Opção ${i + 1}',
-                ),
+            TextField(
+              controller: _optionsControllers[i],
+              decoration: InputDecoration(
+                labelText: 'Opção ${i + 1}',
               ),
             ),
-
-            // Adicionar um botão de opção correta para cada campo
-
-            SizedBox(
-              width: MediaQuery.sizeOf(context).width * 0.2,
-              child: RadioListTile(
-                title: const Text('Correta'),
-                value: i,
-                groupValue: _correctOptionIndex,
-                onChanged: (value) {
-                  setState(() {
-                    _correctOptionIndex = value as int;
-                  });
-                },
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ColoredBox(
+                color: Colors.green,
+                child: Material(
+                  child: RadioListTile(
+                    title: const Text('Correta'),
+                    value: i,
+                    groupValue: _correctOptionIndex,
+                    onChanged: (value) {
+                      setState(() {
+                        _correctOptionIndex = value as int;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
               ),
             ),
           ],

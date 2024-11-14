@@ -3,9 +3,11 @@ import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flashcardquiz/models/flashcard_model.dart';
 import 'package:flutter/foundation.dart'; // Verifica a plataforma
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // Para uso em desktop
 import 'package:path/path.dart';
 import 'dart:io';
+import 'package:sqflite/sqflite.dart' as sqlite;
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -14,6 +16,8 @@ class DatabaseHelper {
   DatabaseHelper._internal();
 
   static Database? _database;
+  // Banco de dados sqflite
+  Database? _sqfliteDatabase;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -50,52 +54,38 @@ class DatabaseHelper {
       );
     } else {
       // Usa o sqflite para Android/iOS
-      final dbPath = await getDatabasesPath();
-      return await openDatabase(
-        join(dbPath, 'flashcards.db'),
-        version: 1,
-        onCreate: (db, version) async {
-          await db.execute('''
-            CREATE TABLE flashcards(
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              question TEXT NOT NULL,
-              options TEXT,
-              correctIndex INTEGER
-            )
-          ''');
-          // Insere dados iniciais, se necessário
-          //  await insertInitialFlashcards(db);
-        },
-      );
+      return await _initSqfliteDatabase();
     }
   }
 
-  Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Mude o número da versão conforme necessário
-      await db.execute('ALTER TABLE flashcards ADD COLUMN options TEXT');
-    }
-  }
+  Future<Database> _initSqfliteDatabase() async {
+    var documentsDirectory = await getApplicationDocumentsDirectory();
+    String path = join(documentsDirectory.path, 'flashcards.db');
 
-  Future<void> insertInitialFlashcards(Database db) async {
-    // Insira flashcards iniciais no banco de dados
-    await db.insert('flashcards', {
-      'question': 'What is Flutter?',
-      'optionss': 'A UI toolkit by Google.'
-    });
-    await db.insert('flashcards', {
-      'question': 'What is Dart?',
-      'options': 'A programming language for Flutter.'
-    });
+    return _sqfliteDatabase = await sqlite.openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) {
+        db.execute('''
+              CREATE TABLE flashcards(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                options TEXT,
+                correctIndex INTEGER
+              )
+            ''');
+      },
+    );
   }
 
   Future<int> insertFlashcard(FlashCard flashcard) async {
     final db = await database;
-    return await db.insert(
-      'flashcards',
-      flashcard.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    if (Platform.isAndroid || Platform.isIOS) {
+      return await db.insert('flashcards', flashcard.toMap());
+    } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      return await db.insert('flashcards', flashcard.toMap());
+    }
+    return -1;
   }
 
   Future<List<FlashCard>> getFlashcards() async {
@@ -140,7 +130,7 @@ class DatabaseHelper {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
     if (selectedDirectory != null) {
-      final backupPath = join(selectedDirectory, 'flashcards_backup.db');
+      final backupPath = join(selectedDirectory, 'flashcards.db');
       try {
         final dbFile = File(databasePath);
         await dbFile.copy(backupPath);
