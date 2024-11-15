@@ -3,8 +3,9 @@ import 'dart:io' show Platform;
 
 import 'package:flashcardquiz/core/database/sqlite/db_helper.dart';
 import 'package:flashcardquiz/models/flashcard_model.dart';
-import 'package:flashcardquiz/screens/flashcard/widget/flash_card_widget.dart';
-import 'package:flashcardquiz/screens/quiz/quiz_screen.dart';
+import 'package:flashcardquiz/screens/flashcard/widget/gridview_widget.dart';
+import 'package:flashcardquiz/screens/flashcard/widget/listview_widget.dart';
+import 'package:flashcardquiz/screens/flashcard/widget/stackwidget.dart';
 import 'package:flutter/material.dart';
 
 import 'flashcard_form_screen.dart';
@@ -19,7 +20,7 @@ class FlashCardListScreen extends StatefulWidget {
 class _FlashCardListScreenState extends State<FlashCardListScreen> {
   List<FlashCard> _flashcards = [];
   bool _isGridMode = true;
-
+  bool isLoading = true;
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   // Função para criar backup
@@ -29,7 +30,6 @@ class _FlashCardListScreenState extends State<FlashCardListScreen> {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
-      print('e.toString( ) ${e.toString()}');
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
     }
@@ -52,14 +52,19 @@ class _FlashCardListScreenState extends State<FlashCardListScreen> {
 
   @override
   void initState() {
+    if (Platform.isAndroid || Platform.isIOS) {
+      _isGridMode = false;
+    }
     super.initState();
     _loadFlashcards();
   }
 
-  void _loadFlashcards() async {
+  Future<void> _loadFlashcards() async {
+    isLoading = true;
     List<FlashCard> flashcards = await DatabaseHelper().getFlashcards();
     setState(() {
       _flashcards = flashcards;
+      isLoading = false;
     });
   }
 
@@ -91,20 +96,11 @@ class _FlashCardListScreenState extends State<FlashCardListScreen> {
                     });
                   },
                 ),
-              const SizedBox(
-                width: 50.0,
-              ),
               IconButton(
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.refresh),
                 onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const FlashcardFormScreen(),
-                      )).then((_) {
-                    setState(() {
-                      _loadFlashcards();
-                    });
+                  setState(() {
+                    _loadFlashcards();
                   });
                 },
               ),
@@ -116,36 +112,20 @@ class _FlashCardListScreenState extends State<FlashCardListScreen> {
           ? const Center(child: Text('Nenhum flashcard disponível.'))
           : Padding(
               padding: const EdgeInsets.all(8.0),
-              child: _isGridMode
-                  ? GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 8.0,
-                        crossAxisSpacing: 8.0,
-                        childAspectRatio: 3 / 2,
-                      ),
-                      itemCount: _flashcards.length,
-                      itemBuilder: (context, index) {
-                        return FlashCardWidget(
-                            flashcard: _flashcards[index],
-                            loadFlashcards: _loadFlashcards);
-                      },
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(8),
-                      itemCount: _flashcards.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return SizedBox(
-                          height: 150,
-                          child: FlashCardWidget(
-                              flashcard: _flashcards[index],
-                              loadFlashcards: _loadFlashcards),
-                        );
-                      },
-                      separatorBuilder: (BuildContext context, int index) =>
-                          const Divider(),
-                    ),
+              child: RefreshIndicator(
+                onRefresh: _loadFlashcards,
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _isGridMode
+                        ? GridViewWidget(
+                            flashcards: _flashcards,
+                            loadFlashcards: _loadFlashcards,
+                          )
+                        : ListViewWidget(
+                            flashcards: _flashcards,
+                            loadFlashcards: _loadFlashcards,
+                          ),
+              ),
             ),
       drawer: Drawer(
         child: Column(
@@ -182,17 +162,7 @@ class _FlashCardListScreenState extends State<FlashCardListScreen> {
           ],
         ),
       ),
-      floatingActionButton: _flashcards.isNotEmpty
-          ? FloatingActionButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => const QuizScreen(),
-                ));
-              },
-              tooltip: 'Iniciar Quiz',
-              child: const Icon(Icons.question_answer),
-            )
-          : null,
+      floatingActionButton: Stackwidget(flashcard: _flashcards),
     );
   }
 

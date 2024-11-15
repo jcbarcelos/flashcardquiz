@@ -63,7 +63,7 @@ class _FlashCardWidgetState extends State<FlashCardWidget> {
           ),
         ),
         Positioned(
-          right: 10,
+          left: 10,
           child: IconButton(
             onPressed: () {
               Navigator.of(context)
@@ -83,8 +83,7 @@ class _FlashCardWidgetState extends State<FlashCardWidget> {
           ),
         ),
         Positioned(
-          right: 10,
-          bottom: 10,
+          left: 50,
           child: IconButton(
             onPressed: () async {
               await DatabaseHelper().deleteFlashcard(widget.flashcard.id!);
@@ -112,15 +111,18 @@ class _FlashCardWidgetState extends State<FlashCardWidget> {
         borderRadius: BorderRadius.circular(20),
       ),
       alignment: Alignment.center,
-      child: Text(
-        widget.flashcard.question,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Text(
+          widget.flashcard.question,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+          ),
+          textAlign: TextAlign.center,
+          softWrap: true,
+          maxLines: 10,
         ),
-        textAlign: TextAlign.center,
-        softWrap: true,
-        maxLines: 10,
       ),
     );
   }
@@ -138,7 +140,7 @@ class _FlashCardWidgetState extends State<FlashCardWidget> {
         widget.flashcard.options[widget.flashcard.correctIndex],
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 20,
+          fontSize: 18,
         ),
         textAlign: TextAlign.center,
         maxLines: 10,

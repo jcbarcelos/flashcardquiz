@@ -40,7 +40,7 @@ class DatabaseHelper {
           version: 1,
           onCreate: (db, version) async {
             await db.execute('''
-              CREATE TABLE flashcards(
+              CREATE TABLE IF NOT EXISTS  flashcards(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 question TEXT NOT NULL,
                 options TEXT,
@@ -67,7 +67,7 @@ class DatabaseHelper {
       version: 1,
       onCreate: (db, version) {
         db.execute('''
-              CREATE TABLE flashcards(
+              CREATE TABLE IF NOT EXISTS flashcards(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 question TEXT NOT NULL,
                 options TEXT,
@@ -85,6 +85,7 @@ class DatabaseHelper {
     } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
       return await db.insert('flashcards', flashcard.toMap());
     }
+    await closeDatabase();
     return -1;
   }
 
@@ -92,6 +93,7 @@ class DatabaseHelper {
     final db = await database;
     try {
       final List<Map<String, dynamic>> maps = await db.query('flashcards');
+
       return List.generate(maps.length, (i) {
         return FlashCard.fromMap(maps[i]);
       });
@@ -102,13 +104,17 @@ class DatabaseHelper {
 
   Future<int> updateFlashcard(FlashCard flashcard) async {
     final db = await database;
-    return await db.update('flashcards', flashcard.toMap(),
+    await db.update('flashcards', flashcard.toMap(),
         where: 'id = ?', whereArgs: [flashcard.id]);
+
+    await closeDatabase();
+    return 1;
   }
 
   Future<int> deleteFlashcard(int id) async {
     final db = await database;
-    return await db.delete('flashcards', where: 'id = ?', whereArgs: [id]);
+    await db.delete('flashcards', where: 'id = ?', whereArgs: [id]);
+    return 1;
   }
 
   Future<FlashCard?> getRandomFlashcard() async {
@@ -133,6 +139,7 @@ class DatabaseHelper {
       final backupPath = join(selectedDirectory, 'flashcards.db');
       try {
         final dbFile = File(databasePath);
+
         await dbFile.copy(backupPath);
         return 'Backup criado com sucesso em $backupPath';
       } catch (e) {
@@ -145,10 +152,15 @@ class DatabaseHelper {
 
   // Função para restaurar o banco de dados a partir do backup selecionado
   Future<String> restoreDatabase() async {
-    // final dbPath = await getDatabasesPath();
-    // final databasePath = join(dbPath, 'flashcards.db');
-    var documentsDirectory = await getApplicationDocumentsDirectory();
-    String dbPath = join(documentsDirectory.path, 'flashcards.db');
+    String dbPath;
+    if (Platform.isAndroid || Platform.isIOS) {
+      var documentsDirectory = await getApplicationDocumentsDirectory();
+      dbPath = join(documentsDirectory.path, 'flashcards.db');
+    } else {
+      final documentsDirectory = await getDatabasesPath();
+      dbPath = join(documentsDirectory, 'flashcards.db');
+    }
+    // await File(dbPath).delete();
     // Seleciona o arquivo de backup para restaurar
     FilePickerResult? result =
         await FilePicker.platform.pickFiles(type: FileType.any);
@@ -159,6 +171,7 @@ class DatabaseHelper {
         await File(backupFile).copy(dbPath);
 
         _database = await _initDatabase();
+
         // Re-inicializa o banco de dados
         return 'Banco de dados restaurado com sucesso';
       } catch (e) {
@@ -167,5 +180,69 @@ class DatabaseHelper {
     } else {
       return 'Operação de restauração cancelada';
     }
+  }
+  // Future<String> restoreDatabase() async {
+  //   String dbPath;
+  //   if (Platform.isAndroid || Platform.isIOS) {
+  //     var documentsDirectory = await getApplicationDocumentsDirectory();
+  //     dbPath = join(documentsDirectory.path, 'flashcards.db');
+  //   } else {
+  //     final documentsDirectory = await getDatabasesPath();
+  //     dbPath = join(documentsDirectory, 'flashcards.db');
+  //   }
+
+  //   // Seleciona o arquivo de backup para restaurar
+  //   FilePickerResult? result =
+  //       await FilePicker.platform.pickFiles(type: FileType.any);
+
+  //   if (result != null) {
+  //     try {
+  //       final backupFile = result.files.single.path!;
+  //       final tempDbPath = join(
+  //           await getTemporaryDirectory().then((dir) => dir.path),
+  //           'temp_flashcards.db');
+
+  //       // Copia o backup para um banco temporário
+  //       await File(backupFile).copy(tempDbPath);
+
+  //       // Abre o banco de dados atual e o temporário
+  //       final Database currentDb = await openDatabase(dbPath);
+  //       final Database tempDb = await openDatabase(tempDbPath);
+
+  //       // Lê os dados do banco de dados temporário
+  //       final List<Map<String, dynamic>> newFlashcards =
+  //           await tempDb.query('flashcards');
+
+  //       // Insere os dados no banco de dados principal, evitando duplicatas
+  //       for (var flashcard in newFlashcards) {
+  //         await currentDb.insert(
+  //           'flashcards',
+  //           flashcard,
+  //           conflictAlgorithm:
+  //               ConflictAlgorithm.ignore, // Ignora entradas duplicadas
+  //         );
+  //       }
+
+  //       // Fecha os bancos de dados
+  //       // await tempDb.close();
+  //       // await currentDb.close();
+
+  //       // Remove o banco de dados temporário
+  //       await File(tempDbPath).delete();
+
+  //       return 'Dados do backup adicionados com sucesso';
+  //     } catch (e) {
+  //       File('flashcards.db').delete();
+  //       throw Exception('Erro ao restaurar banco de dados: $e');
+  //     }
+  //   } else {
+  //     return 'Operação de restauração cancelada';
+  //   }
+  // }
+
+  // Função para fechar o banco de dados
+  Future<void> closeDatabase() async {
+    var db = await database;
+    db.close();
   }
 }
